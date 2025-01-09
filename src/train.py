@@ -85,8 +85,8 @@ def train(model, args):
                                            use_minibatch = use_minibatch, 
                                            gradient_accumulation_steps = gradient_accumulation_steps, 
                                            device = device, 
-                                           sample_layer = sample_layer)
-                                           # comment = comment)
+                                           sample_layer = sample_layer,
+                                           comment = "gpt2-icl")
 
         hessian.get_spectrum(layer_by_layer = True)
         hessian.load_curve(layer_by_layer = True)
