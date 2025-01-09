@@ -72,10 +72,10 @@ def train(model, args):
         device = 'cuda'
         ctx = torch.cuda.device(device)
         context_length = 1024 # gpt 2
-        sample_layer = []
+        all = []
         for name, param in model.named_parameters():
-            if 'transformer' in name:  # only analyze Hessian of transformer layers
-                sample_layer.append(name)
+            if '_backbone' in name:
+                all.append(name)
         hessian = hessian_spectrum.Hessian(model, 
                                            ckpt_iteration = ckpt_iteration, 
                                            train_data = train_data, 
@@ -85,7 +85,7 @@ def train(model, args):
                                            use_minibatch = use_minibatch, 
                                            gradient_accumulation_steps = gradient_accumulation_steps, 
                                            device = device, 
-                                           sample_layer = sample_layer,
+                                           sample_layer = all,
                                            comment = "gpt2-icl")
 
         hessian.get_spectrum(layer_by_layer = True)
