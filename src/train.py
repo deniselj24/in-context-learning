@@ -66,7 +66,7 @@ def train(model, args):
     num_training_examples = args.training.num_training_examples
 
     def plot_hessian(model, train_data, ckpt_iteration):
-        gradient_accumulation_steps = 1 # 60
+        gradient_accumulation_steps = 60 # from original code
         use_minibatch = True
         # assumes gpu 
         device = 'cuda'
@@ -96,6 +96,7 @@ def train(model, args):
 
     last_xs = None
     last_ys = None
+
     for i in pbar:
         data_sampler_args = {}
         task_sampler_args = {}
