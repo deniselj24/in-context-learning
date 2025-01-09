@@ -16,6 +16,8 @@ from models import build_model
 
 import wandb
 
+import hessian_spectrum 
+
 torch.backends.cudnn.benchmark = True
 
 
@@ -63,6 +65,37 @@ def train(model, args):
 
     num_training_examples = args.training.num_training_examples
 
+    def plot_hessian(model, train_data, ckpt_iteration):
+        gradient_accumulation_steps = 1 # 60
+        use_minibatch = True
+        # assumes gpu 
+        device = 'cuda'
+        ctx = torch.cuda.device(device)
+        context_length = 1024 # gpt 2
+        sample_layer = []
+        for name, param in model.named_parameters():
+            if 'transformer' in name:  # only analyze Hessian of transformer layers
+                sample_layer.append(name)
+        hessian = hessian_spectrum.Hessian(model, 
+                                           ckpt_iteration = ckpt_iteration, 
+                                           train_data = train_data, 
+                                           batch_size = args.training.batch_size, 
+                                           block_size = context_length,  
+                                           ctx = ctx, 
+                                           use_minibatch = use_minibatch, 
+                                           gradient_accumulation_steps = gradient_accumulation_steps, 
+                                           device = device, 
+                                           sample_layer = sample_layer)
+                                           # comment = comment)
+
+        hessian.get_spectrum(layer_by_layer = True)
+        hessian.load_curve(layer_by_layer = True)
+
+        hessian.get_spectrum(layer_by_layer = False)
+        hessian.load_curve(layer_by_layer = False)
+
+    last_xs = None
+    last_ys = None
     for i in pbar:
         data_sampler_args = {}
         task_sampler_args = {}
@@ -83,6 +116,11 @@ def train(model, args):
         )
         task = task_sampler(**task_sampler_args)
         ys = task.evaluate(xs)
+
+        # Log hessian every 100 steps 
+        train_data = (xs, ys)
+        if i % 100 == 0: 
+            plot_hessian(model, train_data, i)
 
         loss_func = task.get_training_metric()
 
@@ -132,6 +170,14 @@ def train(model, args):
             and i > 0
         ):
             torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
+
+        if i == len(pbar) - 1:
+            last_xs = xs
+            last_ys = ys
+    
+    train_data = (last_xs, last_ys)
+    # log hessian after training 
+    plot_hessian(model, train_data, len(pbar) - 1)
 
 
 def main(args):
