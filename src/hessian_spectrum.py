@@ -199,7 +199,7 @@ class Hessian(object):
             plt.ylim([1e-10,1e2])
             plt.legend()
             plt.title(f'model at interation {self.ckpt_iteration}')
-            plt.savefig(self.file_dir+'spectrum_'+name+'_'+self.ckpt_iteration+'.png')
+            plt.savefig(self.file_dir+'spectrum_'+name+'_'+str(self.ckpt_iteration)+'.png')
             plt.close()
 
             'log plot'
@@ -210,7 +210,7 @@ class Hessian(object):
             plt.ylim([1e-10,1e2])
             plt.legend()
             plt.title(f'model at interation {self.ckpt_iteration}')
-            plt.savefig(self.file_dir+'/spectrum_log_'+name+'_'+self.ckpt_iteration+'.png')
+            plt.savefig(self.file_dir+'/spectrum_log_'+name+'_'+str(self.ckpt_iteration)+'.png')
             plt.close()
 
 
