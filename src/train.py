@@ -73,9 +73,13 @@ def train(model, args):
         ctx = torch.cuda.device(device)
         context_length = 1024 # gpt 2
         all = []
+        last_layers = []
         for name, param in model.named_parameters():
             if '_backbone' in name:
                 all.append(name)
+            if '_backbone.h.11' in name or '_backbone.ln_f' in name or '_read_out' in name:
+                last_layers.append(name)
+        print(last_layers)
         hessian = hessian_spectrum.Hessian(model, 
                                            ckpt_iteration = ckpt_iteration, 
                                            train_data = train_data, 
@@ -85,8 +89,8 @@ def train(model, args):
                                            use_minibatch = use_minibatch, 
                                            gradient_accumulation_steps = gradient_accumulation_steps, 
                                            device = device, 
-                                           sample_layer = all,
-                                           comment = "gpt2-icl")
+                                           sample_layer = last_layers, # all,
+                                           comment = "gpt2-icl-last-layer-lbl")
 
         hessian.get_spectrum(layer_by_layer = True)
         hessian.load_curve(layer_by_layer = True)
@@ -118,9 +122,9 @@ def train(model, args):
         task = task_sampler(**task_sampler_args)
         ys = task.evaluate(xs)
 
-        # Log hessian every 100 steps 
+        # Log hessian every 1000 steps 
         train_data = (xs, ys)
-        if i % 100 == 0: 
+        if i % 2000 == 0: 
             plot_hessian(model, train_data, i)
 
         loss_func = task.get_training_metric()
@@ -156,17 +160,18 @@ def train(model, args):
         curriculum.update()
 
         pbar.set_description(f"loss {loss}")
-        if i % args.training.save_every_steps == 0 and not args.test_run:
-            training_state = {
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "train_step": i,
-            }
-            torch.save(training_state, state_path)
+        # if i % args.training.save_every_steps == 0 and not args.test_run:
+            # training_state = {
+                # "model_state_dict": model.state_dict(),
+                # "optimizer_state_dict": optimizer.state_dict(),
+                # "train_step": i,
+            # }
+            # torch.save(training_state, state_path)
 
         if (
             args.training.keep_every_steps > 0
-            and i % args.training.keep_every_steps == 0
+            # and i % args.training.keep_every_steps == 0
+            and i % 200000 == 0
             and not args.test_run
             and i > 0
         ):
@@ -179,7 +184,7 @@ def train(model, args):
     train_data = (last_xs, last_ys)
     # log hessian after training 
     plot_hessian(model, train_data, len(pbar) - 1)
-
+    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000.pt"))
 
 def main(args):
     if args.test_run:
