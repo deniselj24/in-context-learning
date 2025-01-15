@@ -3,20 +3,21 @@ inherit:
     - wandb.yaml
 
 model:
-    n_dims: 20
+    n_dims: 8
     n_positions: 101
 
 training:
     data: gaussian
     task_kwargs: {}
-    batch_size: 64
+    batch_size: 256 # 64
     learning_rate: 0.0001
     save_every_steps: 1000
     keep_every_steps: 100000
     train_steps: 500001
+    num_tasks: 0
     curriculum:
         dims:
-            start: 5
-            end: 20
-            inc: 1
+            start: 8
+            end: 8
+            inc: 0
             interval: 2000

@@ -74,10 +74,11 @@ def get_task_sampler(
 
 
 class LinearRegression(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, noise_variance=0):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(LinearRegression, self).__init__(n_dims, batch_size, pool_dict, seeds)
         self.scale = scale
+        self.noise_variance = noise_variance
 
         if pool_dict is None and seeds is None:
             self.w_b = torch.randn(self.b_size, self.n_dims, 1)
@@ -96,7 +97,8 @@ class LinearRegression(Task):
     def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)
         ys_b = self.scale * (xs_b @ w_b)[:, :, 0]
-        return ys_b
+        ys_b_noisy = ys_b + torch.randn_like(ys_b) * math.sqrt(self.noise_variance)
+        return ys_b_noisy 
 
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args

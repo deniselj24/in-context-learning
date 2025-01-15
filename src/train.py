@@ -18,15 +18,19 @@ import wandb
 
 import hessian_spectrum 
 
+import csv 
+from datetime import datetime
+
 torch.backends.cudnn.benchmark = True
 
 
-def train_step(model, xs, ys, optimizer, loss_func):
+def train_step(model, xs, ys, optimizer, loss_func, scheduler):
     optimizer.zero_grad()
     output = model(xs, ys)
     loss = loss_func(output, ys)
     loss.backward()
     optimizer.step()
+    scheduler.step()
     return loss.detach().item(), output.detach()
 
 
@@ -39,6 +43,13 @@ def sample_seeds(total_seeds, count):
 
 def train(model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, 
+        max_lr=args.training.learning_rate,
+        total_steps=args.training.train_steps,
+        pct_start=0.5,
+        anneal_strategy='linear'
+    )
     curriculum = Curriculum(args.training.curriculum)
 
     starting_step = 0
@@ -59,6 +70,7 @@ def train(model, args):
         n_dims,
         bsize,
         num_tasks=args.training.num_tasks,
+        noise_variance=0.25,
         **args.training.task_kwargs,
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
@@ -89,8 +101,8 @@ def train(model, args):
                                            use_minibatch = use_minibatch, 
                                            gradient_accumulation_steps = gradient_accumulation_steps, 
                                            device = device, 
-                                           sample_layer = last_layers, # all,
-                                           comment = "gpt2-icl-last-layer-lbl")
+                                           sample_layer = all, # last_layers,
+                                           comment = f"gpt2-4layer-icl-diversity-all-lbl-{args.training.num_tasks}-tasks-{datetime.date.today()}")
 
         hessian.get_spectrum(layer_by_layer = True)
         hessian.load_curve(layer_by_layer = True)
@@ -100,6 +112,7 @@ def train(model, args):
 
     last_xs = None
     last_ys = None
+    last_loss = None
 
     for i in pbar:
         data_sampler_args = {}
@@ -129,7 +142,7 @@ def train(model, args):
 
         loss_func = task.get_training_metric()
 
-        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func)
+        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, lr_scheduler)
 
         point_wise_tags = list(range(curriculum.n_points))
         point_wise_loss_func = task.get_metric()
@@ -160,6 +173,7 @@ def train(model, args):
         curriculum.update()
 
         pbar.set_description(f"loss {loss}")
+        # Due to storage constraints 
         # if i % args.training.save_every_steps == 0 and not args.test_run:
             # training_state = {
                 # "model_state_dict": model.state_dict(),
@@ -168,23 +182,61 @@ def train(model, args):
             # }
             # torch.save(training_state, state_path)
 
-        if (
-            args.training.keep_every_steps > 0
-            # and i % args.training.keep_every_steps == 0
-            and i % 200000 == 0
-            and not args.test_run
-            and i > 0
-        ):
-            torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
+        # if (
+            # args.training.keep_every_steps > 0
+            #  and i % args.training.keep_every_steps == 0
+            # and i % 200000 == 0
+            # and not args.test_run
+            # and i > 0
+        # ):
+            # torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
 
         if i == len(pbar) - 1:
             last_xs = xs
             last_ys = ys
+            last_loss = loss
     
     train_data = (last_xs, last_ys)
     # log hessian after training 
     plot_hessian(model, train_data, len(pbar) - 1)
-    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000.pt"))
+    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000_{args.training.num_tasks}_tasks.pt"))
+    
+    # evaluate on T_True set
+    t_true_task_sampler = get_task_sampler(
+        args.training.task,
+        n_dims,
+        bsize,
+        noise_variance=0.25,
+        **args.training.task_kwargs,
+    )
+    ttrue_xs = data_sampler.sample_xs(
+        curriculum.n_points,
+        bsize,
+        curriculum.n_dims_truncated,
+        **data_sampler_args,
+    )
+    ttrue_task = t_true_task_sampler(**task_sampler_args)
+    ttrue_ys = ttrue_task.evaluate(ttrue_xs)
+    loss_func = t_true_task_sampler.get_training_metric()
+    ttrue_output = model(ttrue_xs, ttrue_ys)
+    ttrue_loss = loss_func(ttrue_output, ttrue_ys)
+    print(f"ttrue_loss: {ttrue_loss}")
+    # log the loss on T_Pretrain set and T_True set 
+    metrics_file = os.path.join(args.out_dir, f'diversity_loss_metrics.csv')
+    # Create file with headers if it doesn't exist
+    if not os.path.exists(metrics_file):
+        with open(metrics_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['num_tasks', 't_pretrain_loss', 't_true_loss'])
+    # Append new row
+    with open(metrics_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            args.training.num_tasks,
+            last_loss,
+            ttrue_loss 
+        ])
+
 
 def main(args):
     if args.test_run:
