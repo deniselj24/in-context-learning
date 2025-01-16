@@ -43,13 +43,14 @@ def sample_seeds(total_seeds, count):
 
 def train(model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(
+    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer, 
         max_lr=args.training.learning_rate,
         total_steps=args.training.train_steps,
         pct_start=0.5,
         anneal_strategy='linear'
     )
+    # set to 16 points throughout training 
     curriculum = Curriculum(args.training.curriculum)
 
     starting_step = 0
