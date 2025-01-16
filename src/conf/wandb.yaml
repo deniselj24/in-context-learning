@@ -1,5 +1,5 @@
 wandb:
-    project: in-context-training
-    entity: your-entity
+    project: in-context-training-diversity
+    entity: deniselj
     notes:
     log_every_steps: 100

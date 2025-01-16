@@ -1,6 +1,5 @@
 import yaml
 import subprocess
-from pathlib import Path
 from tqdm import tqdm
 
 def update_config(config_path, new_values):
@@ -29,7 +28,7 @@ def run_experiments():
     num_tasks_values = [2 ** i for i in range(1, 21)]
 
     config_path = 'conf/base.yaml'
-    
+    train_config_path = f'conf/linear_regression.yaml'
     for i in tqdm(range(len(num_tasks_values))):
         # Update config
         updates = {
@@ -39,7 +38,6 @@ def run_experiments():
             
         # Run training
         print(f"\nRunning num_tasks={num_tasks_values[i]}")
-        train_config_path = f'conf/linear_regression.yaml'
         subprocess.run(['python', 'train.py', '--config', train_config_path])
 
 if __name__ == '__main__':
