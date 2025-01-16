@@ -96,6 +96,11 @@ class LinearRegression(Task):
 
     def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)
+
+        # to ensure that w_b and xs_b have the same shape 
+        indices = torch.randint(0, w_b.shape[0], (self.b_size,))
+        w_b = w_b[indices]
+
         ys_b = self.scale * (xs_b @ w_b)[:, :, 0]
         ys_b_noisy = ys_b + torch.randn_like(ys_b) * math.sqrt(self.noise_variance)
         return ys_b_noisy 
