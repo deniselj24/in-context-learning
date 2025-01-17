@@ -235,7 +235,7 @@ def main(args):
             entity=args.wandb.entity,
             config=args.__dict__,
             notes=args.wandb.notes,
-            name=args.wandb.name,
+            name=f"{args.training.num_tasks}-tasks",
             resume=True,
         )
 
