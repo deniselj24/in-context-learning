@@ -113,9 +113,6 @@ def train(model, args):
 
     last_xs = None
     last_ys = None
-    last_loss = None
-    ttrue_losses = 
-
     for i in pbar:
         data_sampler_args = {}
         task_sampler_args = {}
@@ -221,25 +218,9 @@ def train(model, args):
     
     train_data = (last_xs, last_ys)
     
-    # log the loss on T_Pretrain set and T_True set 
-    metrics_file = os.path.join(args.out_dir, f'diversity_loss_metrics.csv')
-    # Create file with headers if it doesn't exist
-    if not os.path.exists(metrics_file):
-        with open(metrics_file, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['num_tasks', 't_pretrain_loss', 't_true_loss'])
-    # Append new row
-    with open(metrics_file, 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            args.training.num_tasks,
-            last_loss,
-            ttrue_loss 
-        ])
     # log hessian after training 
     plot_hessian(model, train_data, len(pbar) - 1)
     torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000_{args.training.num_tasks}_tasks.pt"))
-    
 
 
 def main(args):

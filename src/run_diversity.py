@@ -41,24 +41,27 @@ def run_experiments():
         print(f"\nRunning num_tasks={num_tasks_values[i]}")
         subprocess.run(['python', 'train.py', '--config', train_config_path])
 
-def run_experiment(n):
-    updates = {
-        'training.num_tasks': n
-    }
+def run_experiment(list_n):
     config_path = 'conf/base.yaml'
     train_config_path = f'conf/linear_regression.yaml'
-    update_config(config_path, updates) 
-    # run training 
-    print(f"\nRunning num_tasks={n}")
-    subprocess.run(['python', 'train.py', '--config', train_config_path])
+    for i in tqdm(range(len(list_n))):
+        # Update config
+        updates = {
+            'training.num_tasks': list_n[i]
+        }
+        update_config(config_path, updates)
+            
+        # Run training
+        print(f"\nRunning num_tasks={list_n[i]}")
+        subprocess.run(['python', 'train.py', '--config', train_config_path])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n', type=int, required=False, default=-1,
+    parser.add_argument('--n', type=int, nargs='*', required=False, default=[-1],
                        help='Number of tasks to use (should be a power of 2)')
     args = parser.parse_args()
-    if args.n == -1: 
+    if -1 in args.n: 
         run_experiments()
     else: 
         run_experiment(args.n)
