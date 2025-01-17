@@ -187,9 +187,9 @@ def train(model, args):
             bsize,
             curriculum.n_dims_truncated,
             **data_sampler_args,
-        )
+        ).cuda()
         ttrue_task = t_true_task_sampler(**task_sampler_args)
-        ttrue_ys = ttrue_task.evaluate(ttrue_xs)
+        ttrue_ys = ttrue_task.evaluate(ttrue_xs).cuda()
         ttrue_output = model(ttrue_xs, ttrue_ys)
         ttrue_loss = loss_func(ttrue_output, ttrue_ys)
         print(f"ttrue_loss: {ttrue_loss}")
@@ -214,7 +214,7 @@ def train(model, args):
         if i == len(pbar) - 1:
             last_xs = xs
             last_ys = ys
-            
+
     train_data = (last_xs, last_ys)
     
     # log hessian after training 
