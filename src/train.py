@@ -102,8 +102,8 @@ def train(model, args):
                                            use_minibatch = use_minibatch, 
                                            gradient_accumulation_steps = gradient_accumulation_steps, 
                                            device = device, 
-                                           sample_layer = all, # last_layers,
-                                           comment = f"gpt2-4layer-icl-diversity-all-lbl-{args.training.num_tasks}-tasks")
+                                           sample_layer = last_layers,
+                                           comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-{args.training.num_tasks}-tasks")
 
         hessian.get_spectrum(layer_by_layer = True)
         hessian.load_curve(layer_by_layer = True)
