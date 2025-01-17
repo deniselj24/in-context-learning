@@ -214,8 +214,7 @@ def train(model, args):
         if i == len(pbar) - 1:
             last_xs = xs
             last_ys = ys
-            last_loss = loss
-    
+            
     train_data = (last_xs, last_ys)
     
     # log hessian after training 
