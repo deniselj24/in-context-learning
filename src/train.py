@@ -198,9 +198,6 @@ def train(model, args):
             last_loss = loss
     
     train_data = (last_xs, last_ys)
-    # log hessian after training 
-    plot_hessian(model, train_data, len(pbar) - 1)
-    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000_{args.training.num_tasks}_tasks.pt"))
     
     # evaluate on T_True set
     t_true_task_sampler = get_task_sampler(
@@ -237,6 +234,10 @@ def train(model, args):
             last_loss,
             ttrue_loss 
         ])
+    # log hessian after training 
+    plot_hessian(model, train_data, len(pbar) - 1)
+    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000_{args.training.num_tasks}_tasks.pt"))
+    
 
 
 def main(args):
