@@ -114,6 +114,7 @@ def train(model, args):
     last_xs = None
     last_ys = None
     last_loss = None
+    ttrue_losses = 
 
     for i in pbar:
         data_sampler_args = {}
@@ -157,22 +158,6 @@ def train(model, args):
             / curriculum.n_points
         )
 
-        if i % args.wandb.log_every_steps == 0 and not args.test_run:
-            wandb.log(
-                {
-                    "overall_loss": loss,
-                    "excess_loss": loss / baseline_loss,
-                    "pointwise/loss": dict(
-                        zip(point_wise_tags, point_wise_loss.cpu().numpy())
-                    ),
-                    "n_points": curriculum.n_points,
-                    "n_dims": curriculum.n_dims_truncated,
-                },
-                step=i,
-            )
-
-        curriculum.update()
-
         pbar.set_description(f"loss {loss}")
         # Due to storage constraints 
         # if i % args.training.save_every_steps == 0 and not args.test_run:
@@ -192,6 +177,43 @@ def train(model, args):
         # ):
             # torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
 
+        # evaluate on T_True set
+        t_true_task_sampler = get_task_sampler(
+            args.training.task,
+            n_dims,
+            bsize,
+            noise_variance=0.25,
+            **args.training.task_kwargs,
+        )
+        ttrue_xs = data_sampler.sample_xs(
+            curriculum.n_points,
+            bsize,
+            curriculum.n_dims_truncated,
+            **data_sampler_args,
+        )
+        ttrue_task = t_true_task_sampler(**task_sampler_args)
+        ttrue_ys = ttrue_task.evaluate(ttrue_xs)
+        ttrue_output = model(ttrue_xs, ttrue_ys)
+        ttrue_loss = loss_func(ttrue_output, ttrue_ys)
+        print(f"ttrue_loss: {ttrue_loss}")
+
+        if i % args.wandb.log_every_steps == 0 and not args.test_run:
+            wandb.log(
+                {
+                    "overall_loss": loss,
+                    "excess_loss": loss / baseline_loss,
+                    "pointwise/loss": dict(
+                        zip(point_wise_tags, point_wise_loss.cpu().numpy())
+                    ),
+                    "n_points": curriculum.n_points,
+                    "n_dims": curriculum.n_dims_truncated,
+                    "ttrue_loss": ttrue_loss,
+                },
+                step=i,
+            )
+
+        curriculum.update()
+
         if i == len(pbar) - 1:
             last_xs = xs
             last_ys = ys
@@ -199,26 +221,6 @@ def train(model, args):
     
     train_data = (last_xs, last_ys)
     
-    # evaluate on T_True set
-    t_true_task_sampler = get_task_sampler(
-        args.training.task,
-        n_dims,
-        bsize,
-        noise_variance=0.25,
-        **args.training.task_kwargs,
-    )
-    ttrue_xs = data_sampler.sample_xs(
-        curriculum.n_points,
-        bsize,
-        curriculum.n_dims_truncated,
-        **data_sampler_args,
-    )
-    ttrue_task = t_true_task_sampler(**task_sampler_args)
-    ttrue_ys = ttrue_task.evaluate(ttrue_xs)
-    loss_func = t_true_task_sampler.get_training_metric()
-    ttrue_output = model(ttrue_xs, ttrue_ys)
-    ttrue_loss = loss_func(ttrue_output, ttrue_ys)
-    print(f"ttrue_loss: {ttrue_loss}")
     # log the loss on T_Pretrain set and T_True set 
     metrics_file = os.path.join(args.out_dir, f'diversity_loss_metrics.csv')
     # Create file with headers if it doesn't exist
