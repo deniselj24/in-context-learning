@@ -90,7 +90,7 @@ def train(model, args):
         for name, param in model.named_parameters():
             if '_backbone' in name:
                 all.append(name)
-            if '_backbone.h.11' in name or '_backbone.ln_f' in name or '_read_out' in name:
+            if '_backbone.h.3' in name or '_backbone.ln_f' in name or '_read_out' in name:
                 last_layers.append(name)
         print(last_layers)
         hessian = hessian_spectrum.Hessian(model, 
