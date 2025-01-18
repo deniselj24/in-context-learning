@@ -136,8 +136,8 @@ def train(model, args):
 
         # Log hessian every 1000 steps 
         train_data = (xs, ys)
-        # if i % 5000 == 0: 
-           # plot_hessian(model, train_data, i)
+        if i % 5000 == 0: 
+           plot_hessian(model, train_data, i)
 
         loss_func = task.get_training_metric()
 
