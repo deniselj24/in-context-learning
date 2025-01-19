@@ -91,7 +91,7 @@ def train(model, args):
         ctx = (
             nullcontext()
             if device == "cpu"
-            else torch.cuda.amp.autocast(device_type=device, dtype=ptdtype)
+            else torch.cuda.amp.autocast()
         )
         context_length = 1024 # gpt 2
         all = []
