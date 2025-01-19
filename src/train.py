@@ -21,6 +21,7 @@ import hessian_spectrum
 import csv 
 from datetime import datetime
 import time
+from contextlib import nullcontext
 
 torch.backends.cudnn.benchmark = True
 
@@ -83,8 +84,12 @@ def train(model, args):
         gradient_accumulation_steps = 60 # from original code
         use_minibatch = True
         # assumes gpu 
-        device = 'cuda'
-        ctx = torch.cuda.device(device)
+        device = ('cuda')
+        ctx = (
+            nullcontext()
+            if device == "cpu"
+            else torch.amp.autocast(device_type=device, dtype=ptdtype)
+        )
         context_length = 1024 # gpt 2
         all = []
         last_layers = []
