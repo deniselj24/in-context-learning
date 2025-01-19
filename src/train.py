@@ -20,6 +20,7 @@ import hessian_spectrum
 
 import csv 
 from datetime import datetime
+import time
 
 torch.backends.cudnn.benchmark = True
 
@@ -100,19 +101,23 @@ def train(model, args):
                                            block_size = context_length,  
                                            ctx = ctx, 
                                            use_minibatch = use_minibatch, 
-                                           gradient_accumulation_steps = gradient_accumulation_steps, 
+                                           # gradient_accumulation_steps = gradient_accumulation_steps, 
                                            device = device, 
                                            sample_layer = last_layers,
-                                           comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-{args.training.num_tasks}-tasks")
+                                           comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.num_tasks}-tasks")
 
         hessian.get_spectrum(layer_by_layer = True)
+        # Wait for the hessian to finish
+        time.sleep(10)
         hessian.load_curve(layer_by_layer = True)
 
-        hessian.get_spectrum(layer_by_layer = False)
-        hessian.load_curve(layer_by_layer = False)
+        # hessian.get_spectrum(layer_by_layer = False)
+        # hessian.load_curve(layer_by_layer = False)
 
     last_xs = None
     last_ys = None
+    best_loss = None 
+    
     for i in pbar:
         data_sampler_args = {}
         task_sampler_args = {}
@@ -165,15 +170,6 @@ def train(model, args):
             # }
             # torch.save(training_state, state_path)
 
-        # if (
-            # args.training.keep_every_steps > 0
-            #  and i % args.training.keep_every_steps == 0
-            # and i % 200000 == 0
-            # and not args.test_run
-            # and i > 0
-        # ):
-            # torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
-
         # evaluate on T_True set
         t_true_task_sampler = get_task_sampler(
             args.training.task,
@@ -215,11 +211,26 @@ def train(model, args):
             last_xs = xs
             last_ys = ys
 
+        # save only the best model 
+        if (
+            args.training.keep_every_steps > 0
+            # and i % args.training.keep_every_steps == 0
+            and i % 10000 == 0
+            and not args.test_run
+            and i > 0
+        ):
+            if best_loss is not None: 
+                os.remove(os.path.join(args.out_dir, f"model.pt"))
+            else: 
+                if ttrue_loss < best_loss: 
+                    best_loss = ttrue_loss
+                    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model.pt"))
+
     train_data = (last_xs, last_ys)
     
     # log hessian after training 
     plot_hessian(model, train_data, len(pbar) - 1)
-    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000_{args.training.num_tasks}_tasks.pt"))
+    # torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_500000_{args.training.num_tasks}_tasks.pt"))
 
 
 def main(args):
