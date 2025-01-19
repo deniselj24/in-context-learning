@@ -85,10 +85,12 @@ def train(model, args):
         use_minibatch = True
         # assumes gpu 
         device = ('cuda')
+        ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float64': torch.float64}[dtype]
+        print(f'ptdtype = {ptdtype}')
         ctx = (
             nullcontext()
             if device == "cpu"
-            else torch.amp.autocast(device_type=device, dtype=ptdtype)
+            else torch.cuda.amp.autocast(device_type=device, dtype=ptdtype)
         )
         context_length = 1024 # gpt 2
         all = []
