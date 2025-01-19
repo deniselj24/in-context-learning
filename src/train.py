@@ -117,7 +117,7 @@ def train(model, args):
     last_xs = None
     last_ys = None
     best_loss = None 
-    
+
     for i in pbar:
         data_sampler_args = {}
         task_sampler_args = {}
@@ -141,7 +141,7 @@ def train(model, args):
 
         # Log hessian every 1000 steps 
         train_data = (xs, ys)
-        if i % 2500 == 0: 
+        if i % 5000 == 0: 
            plot_hessian(model, train_data, i)
 
         loss_func = task.get_training_metric()
