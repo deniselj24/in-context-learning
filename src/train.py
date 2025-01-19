@@ -85,6 +85,7 @@ def train(model, args):
         use_minibatch = True
         # assumes gpu 
         device = ('cuda')
+        dtype = "float32"
         ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float64': torch.float64}[dtype]
         print(f'ptdtype = {ptdtype}')
         ctx = (
