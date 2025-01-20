@@ -40,7 +40,7 @@ def sample_seeds(total_seeds, count):
     seeds = set()
     while len(seeds) < count:
         seeds.add(randint(0, total_seeds - 1))
-	return seeds
+    return seeds
 
 
 
@@ -62,9 +62,10 @@ def plot_hessian(model, train_data, ckpt_iteration):
     last_layers = []
     for name, param in model.named_parameters():
         if '_backbone' in name:
-	    all.append(name)
-        if '_backbone.h.3' in name or '_backbone.ln_f' in name or '_read_out' in name:
-	    last_layers.append(name)
+            all.append(name)
+        if 'weight' in name: 
+            if '_backbone.h.3.attn' in name or '_backbone.h.3.mlp' in name:
+                last_layers.append(name)
     print(last_layers)
     hessian = hessian_spectrum.Hessian(model, 
 				       ckpt_iteration = ckpt_iteration, 
@@ -78,13 +79,14 @@ def plot_hessian(model, train_data, ckpt_iteration):
 				       sample_layer = last_layers,
 				       comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.num_tasks}-tasks")
 
-     hessian.get_spectrum(layer_by_layer = True)
-     # Wait for the hessian to finish
-     time.sleep(10)
-     hessian.load_curve(layer_by_layer = True)
+    hessian.get_spectrum(layer_by_layer = True)
+    # Wait for the hessian to finish
+    time.sleep(10)
+    hessian.load_curve(layer_by_layer = True)
 
-     # hessian.get_spectrum(layer_by_layer = False)
-     # hessian.load_curve(layer_by_layer = False)
+    # hessian.get_spectrum(layer_by_layer = False)
+    # hessian.load_curve(layer_by_layer = False)
+
 def train(model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
@@ -124,7 +126,6 @@ def train(model, args):
 
     last_xs = None
     last_ys = None
-    best_loss = None 
 
     for i in pbar:
         for name, p in model.named_parameters():
@@ -172,14 +173,14 @@ def train(model, args):
         )
 
         pbar.set_description(f"loss {loss}")
-        # Due to storage constraints 
-        # if i % args.training.save_every_steps == 0 and not args.test_run:
-            # training_state = {
-                # "model_state_dict": model.state_dict(),
-                # "optimizer_state_dict": optimizer.state_dict(),
-                # "train_step": i,
-            # }
-            # torch.save(training_state, state_path)
+        if i % args.training.save_every_steps == 0 and not args.test_run:
+            training_state = {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "train_step": i,
+            }
+            model_path = os.path.join(args.out_dir, f"state_{i}.pt")
+            torch.save(training_state, model_path)
 
         # evaluate on T_True set
         t_true_task_sampler = get_task_sampler(
@@ -221,22 +222,6 @@ def train(model, args):
         if i == len(pbar) - 1:
             last_xs = xs
             last_ys = ys
-
-        # save only the best model 
-        if (
-            args.training.keep_every_steps > 0
-            # and i % args.training.keep_every_steps == 0
-            and i % 10000 == 0
-            and not args.test_run
-            and i > 0
-        ):
-            if best_loss is None: 
-                torch.save(model.state_dict(), os.path.join(args.out_dir, f"model.pt"))
-            else: 
-                if ttrue_loss < best_loss: 
-                    best_loss = ttrue_loss
-                    os.remove(os.path.join(args.out_dir, f"model.pt"))
-                    torch.save(model.state_dict(), os.path.join(args.out_dir, f"model.pt"))
 
     train_data = (last_xs, last_ys)
     

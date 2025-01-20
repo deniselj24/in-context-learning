@@ -44,7 +44,7 @@ class Hessian(object):
 
         self.comment = comment + '_minibatch_'+str(self.use_minibatch) +'_bs_'+str(self.batch_size*(self.gradient_accumulation_steps))+ '_m_'+str(self.m)  + '_v_' +str(self.num_v) + '_ckpt_'+str(self.ckpt_iteration)
 
-        self.file_dir = 'files/'+str(self.comment)+'/'
+        self.file_dir = '/dfs/scratch1/deniselj/icl-diversity/files/'+str(self.comment)+'/'
 
         os.makedirs(self.file_dir, exist_ok= True)
 
