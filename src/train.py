@@ -227,11 +227,12 @@ def train(model, args):
             and not args.test_run
             and i > 0
         ):
-            if best_loss is not None: 
-                os.remove(os.path.join(args.out_dir, f"model.pt"))
+            if best_loss is None: 
+                torch.save(model.state_dict(), os.path.join(args.out_dir, f"model.pt"))
             else: 
                 if ttrue_loss < best_loss: 
                     best_loss = ttrue_loss
+                    os.remove(os.path.join(args.out_dir, f"model.pt"))
                     torch.save(model.state_dict(), os.path.join(args.out_dir, f"model.pt"))
 
     train_data = (last_xs, last_ys)
