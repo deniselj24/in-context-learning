@@ -40,9 +40,51 @@ def sample_seeds(total_seeds, count):
     seeds = set()
     while len(seeds) < count:
         seeds.add(randint(0, total_seeds - 1))
-    return seeds
+	return seeds
 
 
+
+def plot_hessian(model, train_data, ckpt_iteration):
+    gradient_accumulation_steps = 60 # from original code
+    use_minibatch = True
+    # assumes gpu 
+    device = ('cuda')
+    dtype = "float32"
+    ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float64': torch.float64}[dtype]
+    print(f'ptdtype = {ptdtype}')
+    ctx = (
+        nullcontext()
+        if device == "cpu"
+        else torch.cuda.amp.autocast()
+    )
+    context_length = 1024 # gpt 2
+    all = []
+    last_layers = []
+    for name, param in model.named_parameters():
+        if '_backbone' in name:
+	    all.append(name)
+        if '_backbone.h.3' in name or '_backbone.ln_f' in name or '_read_out' in name:
+	    last_layers.append(name)
+    print(last_layers)
+    hessian = hessian_spectrum.Hessian(model, 
+				       ckpt_iteration = ckpt_iteration, 
+				       train_data = train_data, 
+				       batch_size = args.training.batch_size, 
+				       block_size = context_length,  
+				       ctx = ctx, 
+				       use_minibatch = use_minibatch, 
+				       # gradient_accumulation_steps = gradient_accumulation_steps, 
+				       device = device, 
+				       sample_layer = last_layers,
+				       comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.num_tasks}-tasks")
+
+     hessian.get_spectrum(layer_by_layer = True)
+     # Wait for the hessian to finish
+     time.sleep(10)
+     hessian.load_curve(layer_by_layer = True)
+
+     # hessian.get_spectrum(layer_by_layer = False)
+     # hessian.load_curve(layer_by_layer = False)
 def train(model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
@@ -80,53 +122,14 @@ def train(model, args):
 
     num_training_examples = args.training.num_training_examples
 
-    def plot_hessian(model, train_data, ckpt_iteration):
-        gradient_accumulation_steps = 60 # from original code
-        use_minibatch = True
-        # assumes gpu 
-        device = ('cuda')
-        dtype = "float32"
-        ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float64': torch.float64}[dtype]
-        print(f'ptdtype = {ptdtype}')
-        ctx = (
-            nullcontext()
-            if device == "cpu"
-            else torch.cuda.amp.autocast()
-        )
-        context_length = 1024 # gpt 2
-        all = []
-        last_layers = []
-        for name, param in model.named_parameters():
-            if '_backbone' in name:
-                all.append(name)
-            if '_backbone.h.3' in name or '_backbone.ln_f' in name or '_read_out' in name:
-                last_layers.append(name)
-        print(last_layers)
-        hessian = hessian_spectrum.Hessian(model, 
-                                           ckpt_iteration = ckpt_iteration, 
-                                           train_data = train_data, 
-                                           batch_size = args.training.batch_size, 
-                                           block_size = context_length,  
-                                           ctx = ctx, 
-                                           use_minibatch = use_minibatch, 
-                                           # gradient_accumulation_steps = gradient_accumulation_steps, 
-                                           device = device, 
-                                           sample_layer = last_layers,
-                                           comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.num_tasks}-tasks")
-
-        hessian.get_spectrum(layer_by_layer = True)
-        # Wait for the hessian to finish
-        time.sleep(10)
-        hessian.load_curve(layer_by_layer = True)
-
-        # hessian.get_spectrum(layer_by_layer = False)
-        # hessian.load_curve(layer_by_layer = False)
-
     last_xs = None
     last_ys = None
     best_loss = None 
 
     for i in pbar:
+        for name, p in model.named_parameters():
+            print(name, p)
+
         data_sampler_args = {}
         task_sampler_args = {}
 
