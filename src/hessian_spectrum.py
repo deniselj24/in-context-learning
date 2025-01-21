@@ -484,8 +484,8 @@ class Hessian(object):
         #end_idx = (batch_idx + 1) * self.batch_size * self.block_size
         #X = torch.from_numpy((self.train_data[start_idx:end_idx]).astype(np.int64)).reshape(self.batch_size, self.block_size)
         #Y = torch.from_numpy((self.train_data[start_idx+1:end_idx+1]).astype(np.int64)).reshape(self.batch_size, self.block_size)
-        X = torch.from_numpy((self.train_data[0]).astype(np.float32)) #.reshape(self.batch_size, self.num_points, self.dims)
-        Y = torch.from_numpy((self.train_data[1]).astype(np.float32)) #.reshape(self.batch_size, self.num_points,1)
+        X = self.train_data[0].to(torch.float32) #.reshape(self.batch_size, self.num_points, self.dims)
+        Y = self.train_data[1].to(torch.float32) #.reshape(self.batch_size, self.num_points,1)
         
         X, Y = X.pin_memory().to(self.device, non_blocking=True), Y.pin_memory().to(self.device, non_blocking=True)
 
