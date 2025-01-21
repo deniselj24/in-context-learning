@@ -13,13 +13,14 @@ import json
 
 
 class Hessian(object):
-    def __init__(self, model = None,  m = 100, sigma = 1e-5**0.5, ckpt_iteration= 0, train_data = [], block_size = None, batch_size = None, num_v = 10, ctx =nullcontext(), use_minibatch = True, gradient_accumulation_steps = 1, device = 'cuda',  sample_layer = None, ddp = False, comment = None):
+    def __init__(self, model = None,  m = 100, sigma = 1e-5**0.5, ckpt_iteration= 0, train_data = [], block_size = None, batch_size = None, num_v = 10, ctx =nullcontext(), use_minibatch = True, gradient_accumulation_steps = 1, device = 'cuda',  sample_layer = None, ddp = False, comment = None, dims=8):
         self.model = model
         self.m = m # number of lanzcos basis
         self.sigma = sigma # the standard deviation of gaussian r.v.
         self.ckpt_iteration = ckpt_iteration
         self.train_data = train_data
-        self.block_size = block_size
+        self.num_points = block_size
+        self.dims = dims
         self.batch_size = batch_size
         self.ctx = ctx
         self.use_minibatch = use_minibatch
@@ -400,9 +401,12 @@ class Hessian(object):
 
             
             X, Y = self.get_batch(batch_idx)
+            print(X, Y)
             with self.ctx:
-                _, loss = self.model(X, Y)
-
+                output = self.model(X, Y)
+                loss = nn.MSELoss()(output, Y)
+                print("output", output, "loss", loss)
+            print("Loss", loss)
             loss.backward(create_graph= True)
             g_dic = {}
             for name, param in self.model.named_parameters():
@@ -433,7 +437,7 @@ class Hessian(object):
         return hd_dic
 
     def hessian_vector_product_with_tensor_input(self, d_tensor, v_step, l_step):
-        'comput hessian_vector product, takes a flattened tensors as input (with shape (total parameters, ) )'
+        'compute hessian_vector product, takes a flattened tensors as input (with shape (total parameters, ) )'
 
         d_tensor = d_tensor.cuda()
         self.model.eval()
@@ -479,11 +483,13 @@ class Hessian(object):
         return total_hd_tensor
 
     def get_batch(self, batch_idx):
-        start_idx = batch_idx * self.batch_size * self.block_size
-        end_idx = (batch_idx + 1) * self.batch_size * self.block_size
-        X = torch.from_numpy((self.train_data[start_idx:end_idx]).astype(np.int64)).reshape(self.batch_size, self.block_size)
-        Y = torch.from_numpy((self.train_data[start_idx+1:end_idx+1]).astype(np.int64)).reshape(self.batch_size, self.block_size)
-       
+        #start_idx = batch_idx * self.batch_size * self.block_size
+        #end_idx = (batch_idx + 1) * self.batch_size * self.block_size
+        #X = torch.from_numpy((self.train_data[start_idx:end_idx]).astype(np.int64)).reshape(self.batch_size, self.block_size)
+        #Y = torch.from_numpy((self.train_data[start_idx+1:end_idx+1]).astype(np.int64)).reshape(self.batch_size, self.block_size)
+        X = torch.from_numpy((self.train_data[0]).astype(np.float32)) #.reshape(self.batch_size, self.num_points, self.dims)
+        Y = torch.from_numpy((self.train_data[1]).astype(np.float32)) #.reshape(self.batch_size, self.num_points,1)
+        
         X, Y = X.pin_memory().to(self.device, non_blocking=True), Y.pin_memory().to(self.device, non_blocking=True)
 
         return X, Y

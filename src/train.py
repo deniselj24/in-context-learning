@@ -57,7 +57,7 @@ def plot_hessian(model, train_data, ckpt_iteration):
         if device == "cpu"
         else torch.cuda.amp.autocast()
     )
-    context_length = 1024 # gpt 2
+    # context_length = 1024 # gpt 2
     all = []
     last_layers = []
     for name, param in model.named_parameters():
@@ -71,7 +71,7 @@ def plot_hessian(model, train_data, ckpt_iteration):
 				       ckpt_iteration = ckpt_iteration, 
 				       train_data = train_data, 
 				       batch_size = args.training.batch_size, 
-				       block_size = context_length,  
+				       block_size = args.training.dims.start,  
 				       ctx = ctx, 
 				       use_minibatch = use_minibatch, 
 				       # gradient_accumulation_steps = gradient_accumulation_steps, 
