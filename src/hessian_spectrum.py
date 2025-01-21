@@ -34,9 +34,10 @@ class Hessian(object):
 
  
         total_elements = len(self.train_data)
-        self.num_batches = total_elements // (self.batch_size * self.block_size)
+        # self.num_batches = total_elements // (self.batch_size * self.block_size)
         
-        print('total batch', self.num_batches)
+        # print('total batch', self.num_batches)
+        print('batch size', self.batch_size)
 
         self.total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         #n_params = sum(p.numel() for p in self.parameters())
@@ -397,42 +398,38 @@ class Hessian(object):
 
 
         t_hd = time.time()
-        for batch_idx in range(self.num_batches):
-
             
-            X, Y = self.get_batch(batch_idx)
-            print(X, Y)
-            with self.ctx:
-                output = self.model(X, Y)
-                loss = nn.MSELoss()(output, Y)
-                print("output", output, "loss", loss)
-            print("Loss", loss)
-            loss.backward(create_graph= True)
-            g_dic = {}
-            for name, param in self.model.named_parameters():
-                if name not in self.sample_layer:
-                    continue
-                if param.requires_grad:
-                    g_dic[name] = param.grad.double()
+        X, Y = self.get_batch(0)
+        print(X, Y)
+        with self.ctx:
+            output = self.model(X, Y)
+            loss = nn.MSELoss()(output, Y)
+            print("output", output, "loss", loss)
+        print("Loss", loss)
+        loss.backward(create_graph= True)
+        g_dic = {}
+        for name, param in self.model.named_parameters():
+            if name not in self.sample_layer:
+                continue
+            if param.requires_grad:
+                g_dic[name] = param.grad.double()
 
-        
-            self.model.zero_grad(set_to_none = True)
-            for name, param in self.model.named_parameters():
-                if name not in self.sample_layer:
-                    continue
-                if param.requires_grad:
-                    l = torch.sum(g_dic[name].cuda() * d_dic[name][-1].cuda())
-                    l.backward(retain_graph = True)
-                    hd = param.grad.double().data.clone()
-                    hd_dic[name]  += hd.cpu()   
-                    self.model.zero_grad(set_to_none = True)
+        self.model.zero_grad(set_to_none = True)
+        for name, param in self.model.named_parameters():
+            if name not in self.sample_layer:
+                continue
+            if param.requires_grad:
+                l = torch.sum(g_dic[name].cuda() * d_dic[name][-1].cuda())
+                l.backward(retain_graph = True)
+                hd = param.grad.double().data.clone()
+                hd_dic[name]  += hd.cpu()   
+                self.model.zero_grad(set_to_none = True)
 
-            if batch_idx % 10 == 1 or batch_idx == self.gradient_accumulation_steps-1:
-                print(f'layer hessian: load_iter ={self.ckpt_iteration}, current random direction = {v_step} / {self.num_v}, lanczos step = {l_step} / {self.m}, Hd current batch = {batch_idx} / {self.num_batches}, time = {time.time() -t_hd}')
-                t_hd = time.time()
+        print(f'layer hessian: load_iter ={self.ckpt_iteration}, current random direction = {v_step} / {self.num_v}, lanczos step = {l_step} / {self.m}, time = {time.time() -t_hd}')
+        t_hd = time.time()
 
-            if self.use_minibatch == True and batch_idx == self.gradient_accumulation_steps-1:
-                break
+        #if self.use_minibatch == True and batch_idx == self.gradient_accumulation_steps-1:
+        #break
        
         return hd_dic
 
