@@ -19,7 +19,7 @@ class Hessian(object):
         self.sigma = sigma # the standard deviation of gaussian r.v.
         self.ckpt_iteration = ckpt_iteration
         self.train_data = train_data
-        self.num_points = block_size
+        self.block_size = block_size
         self.dims = dims
         self.batch_size = batch_size
         self.ctx = ctx
