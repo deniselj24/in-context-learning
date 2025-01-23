@@ -7,23 +7,6 @@ import numpy as np
 import math
 from tqdm import tqdm
 
-def filter_eigenvalues(eigen_list, weight_list, threshold=None):
-    filtered_eigen = []
-    filtered_weight = []
-    #print(np.max(weight_list))
-    print("Debugging filter eigenvalues", np.array(eigen_list).shape, np.array(weight_list).shape)
-    for eig, w in zip(eigen_list, weight_list):
-        if threshold is not None:
-            if eig >= threshold and w >= 1e-7:
-                filtered_eigen.append(eig)
-                filtered_weight.append(w)
-        else:
-            if w >= 1e-10:
-                filtered_eigen.append(eig)
-                filtered_weight.append(w)
-    #print(filtered_eigen)
-    return filtered_eigen, filtered_weight
-
 def gaussian_density(t, values, sigma=1e-5**0.5):
     coeff = 1.0 / np.sqrt(2 * math.pi * sigma**2)
     val = -(values - t) ** 2
@@ -46,15 +29,6 @@ def get_spectral_density(weights, values, n_lanczos=10):
     # density_avg = np.nanmean(density_all, axis = 0)
     return density_all
 
-def renormalize_weights(filtered_weight, epsilon=1e-12):
-    total = sum(filtered_weight)
-    if total > 0:
-        renormalized_weight = [w / (total + epsilon) for w in filtered_weight]
-    else:
-        # Handle case where all weights are zero
-        renormalized_weight = [0.0 for _ in filtered_weight]
-    return renormalized_weight
-
 def compute_spectral_entropy(values_dic, weights_dic, epsilon=1e-12):
     spectral_entropy = {}
     weighted_entropy = {}
@@ -74,15 +48,12 @@ def compute_spectral_entropy(values_dic, weights_dic, epsilon=1e-12):
         # filtered_eigen, filtered_weight = filter_eigenvalues(values, density)
         # renormalized_weight = renormalize_weights(filtered_weight)
         # p = np.array(renormalized_weight) + epsilon  # Avoid log(0)
-        # filtered_eigen = values
-        # renormalized_weight = density
         p = np.array(normalized_density) + epsilon
         print(p.shape, np.array(values).shape)
         spectral_entropy[name] = -np.sum(np.mean(p * np.log(p), axis=0))
         #print("log", np.log(p))
         #print("product", p * np.log(p))
         #print("mean", np.mean(p * np.log(p), axis=0))
-        print(spectral_entropy[name])
         # print("p min", min(p), "p max", max(p), "eigenvalue min", min(filtered_eigen), "eigenvalue max", max(filtered_eigen))
         weighted_entropy[name] = -np.sum(p * np.log(p) * np.array(values))
         centroid[name] = np.sum(np.array(normalized_density) * np.array(values))
@@ -95,7 +66,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, nargs="+", required=True, help="powers of 2")
     args = parser.parse_args()
-    data_dir = os.path.expanduser("~/Desktop/files-backup-jan-21-hessian/files/")
+    data_dir = os.path.expanduser("/dfs/scratch1/deniselj/icl-diversity/files/")
     weights_file = "weights_layer.json"
     values_file = "values_layer.json"
     entropy = {}
