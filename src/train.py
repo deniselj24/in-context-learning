@@ -127,9 +127,10 @@ def train(model, args):
     last_xs = None
     last_ys = None
 
+    #for name, p in model.named_parameters():
+    # print(name, p)
+
     for i in pbar:
-        for name, p in model.named_parameters():
-            print(name, p)
 
         data_sampler_args = {}
         task_sampler_args = {}
