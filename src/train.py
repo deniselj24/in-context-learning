@@ -87,8 +87,9 @@ def plot_hessian(model, train_data, ckpt_iteration):
     # hessian.get_spectrum(layer_by_layer = False)
     # hessian.load_curve(layer_by_layer = False)
 
-def train(model, args):
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
+def train(model, args, optimizer=None):
+    if not optimizer: 
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer, 
         max_lr=args.training.learning_rate,
@@ -111,7 +112,7 @@ def train(model, args):
 
     n_dims = model.n_dims
     bsize = args.training.batch_size
-    data_sampler = get_data_sampler(args.training.data, n_dims=n_dims)
+    data_sampler = get_data_sampler(args.training.data, n_dims=n_dims, task=args.training.task)
     task_sampler = get_task_sampler(
         args.training.task,
         n_dims,
@@ -154,8 +155,8 @@ def train(model, args):
 
         # Log hessian every 1000 steps 
         train_data = (xs, ys)
-        # if i % 5000 == 0: 
-        #   plot_hessian(model, train_data, i)
+        #if i % 25000 == 0: 
+        #    plot_hessian(model, train_data, i)
 
         loss_func = task.get_training_metric()
 
@@ -247,7 +248,16 @@ def main(args):
             name=f"{args.training.num_tasks}-tasks",
             resume=True,
         )
-
+    """
+    if args.checkpoint_path is not None:
+        checkpoint = torch.load(args.checkpoint_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_step = checkpoint['step']
+        print(f"Loaded checkpoint from step {start_step}")
+    else: 
+        model = build_model(args.model)"""
     model = build_model(args.model)
     model.cuda()
     model.train()
