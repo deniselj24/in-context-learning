@@ -134,7 +134,7 @@ class LinearRegression(Task):
         return mean_squared_error
     
 class ModularArithmetic(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97, valid_coords=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(ModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
         # self.scale = scale
@@ -174,11 +174,11 @@ class ModularArithmetic(Task):
 
     @staticmethod
     def get_training_metric():
-        return mean_squared_error
+        return mean_squared_error_modular
     
     
 class SparseModularArithmetic(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97, valid_coords=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(SparseModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
         # self.scale = scale
@@ -221,7 +221,7 @@ class SparseModularArithmetic(Task):
 
     @staticmethod
     def get_training_metric():
-        return mean_squared_error
+        return mean_squared_error_modular
 
 
 class SparseLinearRegression(LinearRegression):
