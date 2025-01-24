@@ -153,6 +153,7 @@ class ModularArithmetic(Task):
             assert "w" in pool_dict
             indices = torch.randperm(len(pool_dict["w"]))[:batch_size]
             self.w_b = pool_dict["w"][indices]
+        self.w_b = self.w_b.float()
 
     def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)
@@ -166,7 +167,8 @@ class ModularArithmetic(Task):
 
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
-        return {"w": torch.randint(0, 97, (num_tasks, n_dims, 1))}
+        pool_dict = {"w": torch.randint(0, 97, (num_tasks, n_dims, 1)).float()}
+        return pool_dict
 
     @staticmethod
     def get_metric():
@@ -200,6 +202,7 @@ class SparseModularArithmetic(Task):
             self.w_b = pool_dict["w"][indices]
         # zero out all the weights except the first one 
         self.w_b[:, 1:, :] = 0
+        self.w_b = self.w_b.float()
 
     def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)
@@ -213,7 +216,7 @@ class SparseModularArithmetic(Task):
 
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
-        return {"w": torch.randint(0, 97, (num_tasks, n_dims, 1))}
+        return {"w": torch.randint(0, 97, (num_tasks, n_dims, 1)).float()}
 
     @staticmethod
     def get_metric():
