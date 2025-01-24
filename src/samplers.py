@@ -57,4 +57,5 @@ class GaussianSampler(DataSampler):
             xs_b += self.bias"""
         if n_dims_truncated is not None:
             xs_b[:, :, n_dims_truncated:] = 0
+        xs_b = xs_b.float()
         return xs_b
