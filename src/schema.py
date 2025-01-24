@@ -40,6 +40,8 @@ TASK_LIST = [
     "linear_classification",
     "relu_2nn_regression",
     "decision_tree",
+    "modular_arithmetic",
+    "sparse_modular_arithmetic"
 ]
 
 training_schema = {
