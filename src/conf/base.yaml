@@ -11,7 +11,7 @@ training:
     task_kwargs: {}
     batch_size: 256
     learning_rate: 0.001
-    save_every_steps: 50000
+    save_every_steps: 25000
     keep_every_steps: 100000
     train_steps: 500001
     num_tasks: 0
