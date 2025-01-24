@@ -52,7 +52,7 @@ def run_experiments(task_name):
 
 def run_experiment(list_n, task_name):
     config_path = 'conf/base.yaml'
-
+    print(task_name)
     if task_name == "linear_regression":
         train_config_path = f'conf/linear_regression.yaml'
     elif task_name == "sparse_modular_arithmetic":
@@ -62,7 +62,7 @@ def run_experiment(list_n, task_name):
     else:
         raise ValueError(f"Task {task_name} not supported")
     # train_config_path = f'conf/linear_regression.yaml'
-    
+
     for i in tqdm(range(len(list_n))):
         # Update config
         updates = {
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=int, nargs='*', required=False, default=[-1],
                        help='Number of tasks to use (should be a power of 2)')
-    parser.add_argument('--task', type=str, nargs='*', required=False, default="linear_regression",
+    parser.add_argument('--task', type=str, required=False, default="linear_regression",
                        help='Task type')
     args = parser.parse_args()
     if -1 in args.n: 
