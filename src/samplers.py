@@ -50,7 +50,8 @@ class GaussianSampler(DataSampler):
             for i, seed in enumerate(seeds):
                 generator.manual_seed(seed)
                 xs_b[i] = torch.randint(0, 97 + 1, (n_points, self.n_dims), generator=generator)
-         """if self.scale is not None:
+        """
+        if self.scale is not None:
             xs_b = xs_b @ self.scale
         if self.bias is not None:
             xs_b += self.bias"""
