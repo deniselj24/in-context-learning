@@ -11,3 +11,6 @@ training:
             interval: 2000
 
 out_dir: /dfs/scratch1/deniselj/icl-diversity/models/modular_arithmetic
+
+wandb:
+    name: "modular_arithmetic"

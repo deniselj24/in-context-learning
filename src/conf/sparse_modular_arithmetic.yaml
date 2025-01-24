@@ -1,0 +1,16 @@
+inherit: 
+    - base.yaml
+
+training:
+    task: sparse_modular_arithmetic
+    curriculum:
+        points:
+            start: 16
+            end: 16
+            inc: 0
+            interval: 2000
+
+out_dir: /dfs/scratch1/deniselj/icl-diversity/models/sparse_modular_arithmetic
+
+wandb:
+    name: "sparse_modular_arithmetic"
