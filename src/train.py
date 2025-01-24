@@ -117,7 +117,7 @@ def train(model, args):
         n_dims,
         bsize,
         num_tasks=args.training.num_tasks,
-        noise_variance=0.25,
+        # noise_variance=0.25,
         **args.training.task_kwargs,
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
@@ -153,8 +153,8 @@ def train(model, args):
 
         # Log hessian every 1000 steps 
         train_data = (xs, ys)
-        if i % 5000 == 0: 
-           plot_hessian(model, train_data, i)
+        # if i % 5000 == 0: 
+        #   plot_hessian(model, train_data, i)
 
         loss_func = task.get_training_metric()
 
@@ -187,7 +187,7 @@ def train(model, args):
             args.training.task,
             n_dims,
             bsize,
-            noise_variance=0.25,
+            #noise_variance=0.25,
             **args.training.task_kwargs,
         )
         ttrue_xs = data_sampler.sample_xs(

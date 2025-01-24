@@ -10,6 +10,20 @@ def squared_error(ys_pred, ys):
 def mean_squared_error(ys_pred, ys):
     return (ys - ys_pred).square().mean()
 
+def mean_squared_error_modular(ys_pred, ys, p=97):
+    pure_diff = (ys - ys_pred).square()
+    # when ys_pred < ys 
+    wrap_diff_1 = (ys_pred + p - ys).square()
+    # when ys_pred > ys 
+    wrap_diff_2 = (ys_pred - p - ys).square()
+    # when ys_pred == ys 
+    mask = ys > ys_pred 
+    min_dist = torch.where(
+        mask,
+        torch.minimum(pure_diff, wrap_diff_1),  # when ys > ys_pred
+        torch.minimum(pure_diff, wrap_diff_2)   # when ys < ys_pred
+    )
+    return min_dist.mean()
 
 def accuracy(ys_pred, ys):
     return (ys == ys_pred.sign()).float()
@@ -60,6 +74,8 @@ def get_task_sampler(
         "quadratic_regression": QuadraticRegression,
         "relu_2nn_regression": Relu2nnRegression,
         "decision_tree": DecisionTree,
+        "modular_arithmetic": ModularArithmetic,
+        "sparse_modular_arithmetic": SparseModularArithmetic,
     }
     if task_name in task_names_to_classes:
         task_cls = task_names_to_classes[task_name]
@@ -108,6 +124,96 @@ class LinearRegression(Task):
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
         return {"w": torch.randn(num_tasks, n_dims, 1)}
+
+    @staticmethod
+    def get_metric():
+        return squared_error
+
+    @staticmethod
+    def get_training_metric():
+        return mean_squared_error
+    
+class ModularArithmetic(Task):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97):
+        """scale: a constant by which to scale the randomly sampled weights."""
+        super(ModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
+        # self.scale = scale
+        self.p = p
+
+        if pool_dict is None and seeds is None:
+            self.w_b = torch.randint(0, p, (self.b_size, self.n_dims, 1))
+        elif seeds is not None:
+            self.w_b = torch.zeros(self.b_size, self.n_dims, 1)
+            generator = torch.Generator()
+            assert len(seeds) == self.b_size
+            for i, seed in enumerate(seeds):
+                generator.manual_seed(seed)
+                self.w_b[i] = torch.randint(0, p, (self.n_dims, 1), generator=generator)
+        else:
+            assert "w" in pool_dict
+            indices = torch.randperm(len(pool_dict["w"]))[:batch_size]
+            self.w_b = pool_dict["w"][indices]
+
+    def evaluate(self, xs_b):
+        w_b = self.w_b.to(xs_b.device)
+
+        # to ensure that w_b and xs_b have the same shape 
+        indices = torch.randint(0, w_b.shape[0], (self.b_size,))
+        w_b = w_b[indices]
+
+        ys_b = torch.remainder((xs_b @ w_b)[:, :, 0], self.p)
+        return ys_b
+
+    @staticmethod
+    def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
+        return {"w": torch.randint(0, 97, (num_tasks, n_dims, 1))}
+
+    @staticmethod
+    def get_metric():
+        return squared_error
+
+    @staticmethod
+    def get_training_metric():
+        return mean_squared_error
+    
+    
+class SparseModularArithmetic(Task):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97):
+        """scale: a constant by which to scale the randomly sampled weights."""
+        super(SparseModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
+        # self.scale = scale
+        self.p = p
+
+        if pool_dict is None and seeds is None:
+            # sample from 0 to p-1
+            self.w_b = torch.randint(0, p, (self.b_size, self.n_dims, 1))
+        elif seeds is not None:
+            self.w_b = torch.zeros(self.b_size, self.n_dims, 1)
+            generator = torch.Generator()
+            assert len(seeds) == self.b_size
+            for i, seed in enumerate(seeds):
+                generator.manual_seed(seed)
+                self.w_b[i] = torch.randint(0, p, (self.n_dims, 1), generator=generator)
+        else:
+            assert "w" in pool_dict
+            indices = torch.randperm(len(pool_dict["w"]))[:batch_size]
+            self.w_b = pool_dict["w"][indices]
+        # zero out all the weights except the first one 
+        self.w_b[:, 1:, :] = 0
+
+    def evaluate(self, xs_b):
+        w_b = self.w_b.to(xs_b.device)
+
+        # to ensure that w_b and xs_b have the same shape 
+        indices = torch.randint(0, w_b.shape[0], (self.b_size,))
+        w_b = w_b[indices]
+
+        ys_b = torch.remainder((xs_b @ w_b)[:, :, 0], self.p)
+        return ys_b
+
+    @staticmethod
+    def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
+        return {"w": torch.randint(0, 97, (num_tasks, n_dims, 1))}
 
     @staticmethod
     def get_metric():

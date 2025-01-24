@@ -1,5 +1,5 @@
 wandb:
-    project: icl-diversity
+    project: icl-diversity-modular-arithmetic
     entity: deniselj
     notes:
     log_every_steps: 100

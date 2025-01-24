@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, nargs="+", required=True, help="powers of 2")
     args = parser.parse_args()
-    data_dir = os.path.expanduser("/dfs/scratch1/deniselj/icl-diversity/files/")
+    data_dir = os.path.expanduser("~/Desktop/files-backup-jan-21-hessian/files/")
     weights_file = "weights_layer.json"
     values_file = "values_layer.json"
     entropy = {}
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                     entropy[key][n] = {}
                 entropy[key][n][ckpt] = eval(key)
                 # spectral_entropy, etc. is dictionary with layer name as key 
-    print(entropy)
+    # print(entropy)
     with open(os.path.join(data_dir, "entropy.json"), "w") as f:
         json.dump(entropy, f)
 
@@ -100,6 +100,7 @@ if __name__ == "__main__":
         for i in args.n:
             n = 2 ** i
             iterations = sorted(entropy["weighted_entropy"][n].keys())
+            print("debugging", iterations)
             entropies = [entropy["weighted_entropy"][n][j][layer_name] for j in iterations]
             plt.plot(iterations, entropies, 
                     label=f"{n} Tasks", 
