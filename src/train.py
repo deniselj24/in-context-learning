@@ -77,7 +77,7 @@ def plot_hessian(model, train_data, ckpt_iteration):
 				       # gradient_accumulation_steps = gradient_accumulation_steps, 
 				       device = device, 
 				       sample_layer = last_layers,
-				       comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.num_tasks}-tasks")
+				       comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.task}-{args.training.num_tasks}-tasks")
 
     hessian.get_spectrum(layer_by_layer = True)
     # Wait for the hessian to finish
