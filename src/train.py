@@ -32,7 +32,8 @@ def train_step(model, xs, ys, optimizer, loss_func, scheduler):
     loss = loss_func(output, ys)
     loss.backward()
     optimizer.step()
-    scheduler.step()
+    if scheduler: 
+        scheduler.step()
     return loss.detach().item(), output.detach()
 
 
@@ -91,13 +92,16 @@ def plot_hessian(model, train_data, ckpt_iteration):
 def train(model, args, optimizer=None):
     if not optimizer: 
         optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
-    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer, 
-        max_lr=args.training.learning_rate,
-        total_steps=args.training.train_steps,
-        pct_start=0.5,
-        anneal_strategy='linear'
-    )
+    if args.training.task == "linear_regression":
+        lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, 
+            max_lr=args.training.learning_rate,
+            total_steps=args.training.train_steps,
+            pct_start=0.5,
+            anneal_strategy='linear'
+        )
+    else: 
+        lr_scheduler = None
     # set to 16 points throughout training 
     curriculum = Curriculum(args.training.curriculum)
 
@@ -156,13 +160,13 @@ def train(model, args, optimizer=None):
 
         # Log hessian every 25000 steps 
         train_data = (xs, ys)
-        if i % 25000 == 0: 
-            plot_hessian(model, train_data, i)
+        #if i % 25000 == 0: 
+        #    plot_hessian(model, train_data, i)
+
         loss_func = task.get_training_metric()
 
         loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, lr_scheduler)
-        #print(output.shape)
-        #print("model logits", output)
+
         #point_wise_tags = list(range(curriculum.n_points))
         #point_wise_loss_func = task.get_metric()
         #point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
