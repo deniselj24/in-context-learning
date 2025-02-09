@@ -1,23 +1,21 @@
-inherit: 
-    - models/standard.yaml
-    - wandb.yaml
-
+inherit:
+- models/standard.yaml
+- wandb.yaml
 model:
-    n_dims: 8
-    n_positions: 101
-
+  n_dims: 8
+  n_positions: 101
 training:
-    data: gaussian
-    task_kwargs: {}
-    batch_size: 256
-    learning_rate: 0.001
-    save_every_steps: 25000
-    keep_every_steps: 100000
-    train_steps: 500001
-    num_tasks: 0
-    curriculum:
-        dims:
-            start: 8
-            end: 8
-            inc: 0
-            interval: 2000
+  batch_size: 256
+  curriculum:
+    dims:
+      end: 8
+      inc: 0
+      interval: 2000
+      start: 8
+  data: modular_arithmetic
+  keep_every_steps: 100000
+  learning_rate: 0.001
+  num_tasks: 256
+  save_every_steps: 25000
+  task_kwargs: {}
+  train_steps: 500001

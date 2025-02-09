@@ -1,6 +1,7 @@
 import math
 
 import torch
+import torch.nn.functional as F
 
 
 def squared_error(ys_pred, ys):
@@ -10,7 +11,7 @@ def squared_error(ys_pred, ys):
 def mean_squared_error(ys_pred, ys):
     return (ys - ys_pred).square().mean()
 
-def mean_squared_error_modular(ys_pred, ys, p=97):
+def mean_squared_error_modular(ys_pred, ys, p=5):
     pure_diff = (ys - ys_pred).square()
     # when ys_pred < ys 
     wrap_diff_1 = (ys_pred + p - ys).square()
@@ -28,6 +29,11 @@ def mean_squared_error_modular(ys_pred, ys, p=97):
 def accuracy(ys_pred, ys):
     return (ys == ys_pred.sign()).float()
 
+def cross_entropy_modular(logits, ys):
+    ys = ys.long()
+    return F.cross_entropy(
+        logits[:, -1], 
+        ys[:, -1])
 
 sigmoid = torch.nn.Sigmoid()
 bce_loss = torch.nn.BCELoss()
@@ -134,7 +140,7 @@ class LinearRegression(Task):
         return mean_squared_error
     
 class ModularArithmetic(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97, valid_coords=None):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=5, valid_coords=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(ModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
         # self.scale = scale
@@ -163,11 +169,12 @@ class ModularArithmetic(Task):
         w_b = w_b[indices]
 
         ys_b = torch.remainder((xs_b @ w_b)[:, :, 0], self.p)
+        #ys_b = torch.remainder((xs_b[:, :, :-1] @ w_b)[:, :, 0], self.p)
         return ys_b
 
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
-        pool_dict = {"w": torch.randint(0, 97, (num_tasks, n_dims, 1)).float()}
+        pool_dict = {"w": torch.randint(0, 5, (num_tasks, n_dims, 1)).float()}
         return pool_dict
 
     @staticmethod
@@ -176,7 +183,7 @@ class ModularArithmetic(Task):
 
     @staticmethod
     def get_training_metric():
-        return mean_squared_error_modular
+        return cross_entropy_modular
     
     
 class SparseModularArithmetic(Task):
@@ -212,6 +219,7 @@ class SparseModularArithmetic(Task):
         w_b = w_b[indices]
 
         ys_b = torch.remainder((xs_b @ w_b)[:, :, 0], self.p)
+        # ys_b = torch.remainder((xs_b[:, :, :-1] @ w_b)[:, :, 0], self.p)
         return ys_b
 
     @staticmethod
@@ -224,7 +232,8 @@ class SparseModularArithmetic(Task):
 
     @staticmethod
     def get_training_metric():
-        return mean_squared_error_modular
+        #return mean_squared_error_modular
+        return cross_entropy_modular
 
 
 class SparseLinearRegression(LinearRegression):

@@ -66,7 +66,8 @@ def plot_hessian(model, train_data, ckpt_iteration):
         if 'weight' in name: 
             if '_backbone.h.3.attn' in name or '_backbone.h.3.mlp' in name:
                 last_layers.append(name)
-    print(last_layers)
+    # print(last_layers)
+    current_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
     hessian = hessian_spectrum.Hessian(model, 
 				       ckpt_iteration = ckpt_iteration, 
 				       train_data = train_data, 
@@ -77,7 +78,7 @@ def plot_hessian(model, train_data, ckpt_iteration):
 				       # gradient_accumulation_steps = gradient_accumulation_steps, 
 				       device = device, 
 				       sample_layer = last_layers,
-				       comment = f"gpt2-4layer-icl-diversity-last-layers-lbl-grad-acc-1-{args.training.task}-{args.training.num_tasks}-tasks")
+				       comment = f"gpt2-4layer-{args.training.task}-{args.training.num_tasks}-tasks-p=97-crossentropy-{current_date}")
 
     hessian.get_spectrum(layer_by_layer = True)
     # Wait for the hessian to finish
@@ -153,19 +154,19 @@ def train(model, args, optimizer=None):
         task = task_sampler(**task_sampler_args)
         ys = task.evaluate(xs)
 
-        # Log hessian every 1000 steps 
+        # Log hessian every 25000 steps 
         train_data = (xs, ys)
-        #if i % 25000 == 0: 
-        #    plot_hessian(model, train_data, i)
-
+        if i % 25000 == 0: 
+            plot_hessian(model, train_data, i)
         loss_func = task.get_training_metric()
 
         loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, lr_scheduler)
-
-        point_wise_tags = list(range(curriculum.n_points))
-        point_wise_loss_func = task.get_metric()
-        point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
-
+        #print(output.shape)
+        #print("model logits", output)
+        #point_wise_tags = list(range(curriculum.n_points))
+        #point_wise_loss_func = task.get_metric()
+        #point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
+        # TODO
         baseline_loss = (
             sum(
                 max(curriculum.n_dims_truncated - ii, 0)
@@ -209,9 +210,9 @@ def train(model, args, optimizer=None):
                 {
                     "overall_loss": loss,
                     "excess_loss": loss / baseline_loss,
-                    "pointwise/loss": dict(
-                        zip(point_wise_tags, point_wise_loss.cpu().numpy())
-                    ),
+                    #"pointwise/loss": dict(
+                    #    zip(point_wise_tags, point_wise_loss.cpu().numpy())
+                    #),
                     "n_points": curriculum.n_points,
                     "n_dims": curriculum.n_dims_truncated,
                     "ttrue_loss": ttrue_loss,

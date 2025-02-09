@@ -64,17 +64,17 @@ class ModularArithmeticSampler(DataSampler):
         self.bias = bias
         self.scale = scale
 
-    def sample_xs(self, n_points, b_size, n_dims_truncated=None, seeds=None):
+    def sample_xs(self, n_points, b_size, n_dims_truncated=None, seeds=None, p=97):
         if seeds is None:
             # xs_b = torch.randn(b_size, n_points, self.n_dims)
-            xs_b = torch.randint(0, 97 + 1, (b_size, n_points, self.n_dims))
+            xs_b = torch.randint(0, p, (b_size, n_points, self.n_dims))
         else:
             xs_b = torch.zeros(b_size, n_points, self.n_dims)
             generator = torch.Generator()
             assert len(seeds) == b_size
             for i, seed in enumerate(seeds):
                 generator.manual_seed(seed)
-                xs_b[i] = torch.randint(0, 97 + 1, (n_points, self.n_dims), generator=generator)
+                xs_b[i] = torch.randint(0, p, (n_points, self.n_dims), generator=generator)
         """
         if self.scale is not None:
             xs_b = xs_b @ self.scale

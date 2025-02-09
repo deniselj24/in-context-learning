@@ -78,7 +78,7 @@ def get_relevant_baselines(task_name):
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4):
+    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4, p=97):
         super(TransformerModel, self).__init__()
         configuration = GPT2Config(
             n_positions=2 * n_positions,
@@ -94,9 +94,12 @@ class TransformerModel(nn.Module):
 
         self.n_positions = n_positions
         self.n_dims = n_dims
+        self.n_embd = n_embd
         self._read_in = nn.Linear(n_dims, n_embd)
+        #self._read_in = nn.Linear(n_dims + 1, n_embd) # account for the special notation appended to end of each input seq
         self._backbone = GPT2Model(configuration)
-        self._read_out = nn.Linear(n_embd, 1)
+        self._read_out = nn.Linear(n_embd, p)
+        #self._read_out = nn.Linear(n_embd, 1)
 
     @staticmethod
     def _combine(xs_b, ys_b):
@@ -124,7 +127,7 @@ class TransformerModel(nn.Module):
         embeds = self._read_in(zs)
         output = self._backbone(inputs_embeds=embeds).last_hidden_state
         prediction = self._read_out(output)
-        return prediction[:, ::2, 0][:, inds]  # predict only on xs
+        return prediction[:, ::2, :][:, inds, :]  # predict only on xs
 
 
 class NNModel:
