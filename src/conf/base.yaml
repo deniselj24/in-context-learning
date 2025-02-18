@@ -4,6 +4,7 @@ inherit:
 model:
   n_dims: 8
   n_positions: 101
+test_run: false
 training:
   batch_size: 256
   curriculum:
@@ -16,6 +17,6 @@ training:
   keep_every_steps: 100000
   learning_rate: 0.001
   num_tasks: 256
-  save_every_steps: 25000
+  save_every_steps: 250000
   task_kwargs: {}
-  train_steps: 500001
+  train_steps: 1000001

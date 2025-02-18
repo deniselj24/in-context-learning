@@ -1,5 +1,5 @@
 wandb:
-    project: icl-diversity-sparse-mod-p-97-crossentropy-feb7
+    project: icl-diversity-fullmod-p=97-crossentropy-feb13
     entity: deniselj
     notes:
     log_every_steps: 100

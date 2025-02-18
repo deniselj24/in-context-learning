@@ -31,6 +31,13 @@ def accuracy(ys_pred, ys):
 
 def cross_entropy_modular(logits, ys):
     ys = ys.long()
+    softmax = torch.nn.Softmax(dim=-1)
+    #print("logits size", logits[:, -1].shape, torch.argmax(logits[:, -1], dim=-1))
+    #print("ys size", ys[:, -1])
+    all_pos_crossentropy = []
+    for i in range(5): 
+        all_pos_crossentropy.append(F.cross_entropy(logits[:, i], ys[:, i]))
+    #print("debugging", all_pos_crossentropy)
     return F.cross_entropy(
         logits[:, -1], 
         ys[:, -1])
@@ -140,21 +147,20 @@ class LinearRegression(Task):
         return mean_squared_error
     
 class ModularArithmetic(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=5, valid_coords=None):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97, valid_coords=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(ModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
         # self.scale = scale
         self.p = p
-
         if pool_dict is None and seeds is None:
-            self.w_b = torch.randint(0, p, (self.b_size, self.n_dims, 1))
+            self.w_b = torch.randint(1, p, (self.b_size, self.n_dims, 1))
         elif seeds is not None:
             self.w_b = torch.zeros(self.b_size, self.n_dims, 1)
             generator = torch.Generator()
             assert len(seeds) == self.b_size
             for i, seed in enumerate(seeds):
                 generator.manual_seed(seed)
-                self.w_b[i] = torch.randint(0, p, (self.n_dims, 1), generator=generator)
+                self.w_b[i] = torch.randint(1, p, (self.n_dims, 1), generator=generator)
         else:
             assert "w" in pool_dict
             indices = torch.randperm(len(pool_dict["w"]))[:batch_size]
@@ -167,14 +173,13 @@ class ModularArithmetic(Task):
         # to ensure that w_b and xs_b have the same shape 
         indices = torch.randint(0, w_b.shape[0], (self.b_size,))
         w_b = w_b[indices]
-
         ys_b = torch.remainder((xs_b @ w_b)[:, :, 0], self.p)
         #ys_b = torch.remainder((xs_b[:, :, :-1] @ w_b)[:, :, 0], self.p)
         return ys_b
 
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
-        pool_dict = {"w": torch.randint(0, 5, (num_tasks, n_dims, 1)).float()}
+        pool_dict = {"w": torch.randint(1, 97, (num_tasks, n_dims, 1)).float()}
         return pool_dict
 
     @staticmethod
@@ -187,22 +192,22 @@ class ModularArithmetic(Task):
     
     
 class SparseModularArithmetic(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=97, valid_coords=None):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, p=29, valid_coords=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(SparseModularArithmetic, self).__init__(n_dims, batch_size, pool_dict, seeds)
         # self.scale = scale
         self.p = p
 
         if pool_dict is None and seeds is None:
-            # sample from 0 to p-1
-            self.w_b = torch.randint(0, p, (self.b_size, self.n_dims, 1))
+            # sample from 1 to p-1
+            self.w_b = torch.randint(1, p, (self.b_size, self.n_dims, 1))
         elif seeds is not None:
             self.w_b = torch.zeros(self.b_size, self.n_dims, 1)
             generator = torch.Generator()
             assert len(seeds) == self.b_size
             for i, seed in enumerate(seeds):
                 generator.manual_seed(seed)
-                self.w_b[i] = torch.randint(0, p, (self.n_dims, 1), generator=generator)
+                self.w_b[i] = torch.randint(1, p, (self.n_dims, 1), generator=generator)
         else:
             assert "w" in pool_dict
             indices = torch.randperm(len(pool_dict["w"]))[:batch_size]
@@ -224,7 +229,7 @@ class SparseModularArithmetic(Task):
 
     @staticmethod
     def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
-        return {"w": torch.randint(0, 97, (num_tasks, n_dims, 1)).float()}
+        return {"w": torch.randint(1, 29, (num_tasks, n_dims, 1)).float()}
 
     @staticmethod
     def get_metric():

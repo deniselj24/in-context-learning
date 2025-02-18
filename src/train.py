@@ -23,7 +23,7 @@ from datetime import datetime
 import time
 from contextlib import nullcontext
 
-torch.backends.cudnn.benchmark = True
+#torch.backends.cudnn.benchmark = True
 
 
 def train_step(model, xs, ys, optimizer, loss_func, scheduler):
@@ -136,6 +136,12 @@ def train(model, args, optimizer=None):
     #for name, p in model.named_parameters():
     # print(name, p)
 
+    t_true_task_sampler = get_task_sampler(
+        args.training.task,
+        n_dims,
+        bsize,
+        **args.training.task_kwargs,
+    )
     for i in pbar:
 
         data_sampler_args = {}
@@ -157,7 +163,8 @@ def train(model, args, optimizer=None):
         )
         task = task_sampler(**task_sampler_args)
         ys = task.evaluate(xs)
-
+        #print("xs", xs[)
+        #print("ys", ys)
         # Log hessian every 25000 steps 
         train_data = (xs, ys)
         #if i % 25000 == 0: 
@@ -190,30 +197,32 @@ def train(model, args, optimizer=None):
             torch.save(training_state, model_path)
 
         # evaluate on T_True set
-        t_true_task_sampler = get_task_sampler(
-            args.training.task,
-            n_dims,
-            bsize,
-            #noise_variance=0.25,
-            **args.training.task_kwargs,
-        )
-        ttrue_xs = data_sampler.sample_xs(
-            curriculum.n_points,
-            bsize,
-            curriculum.n_dims_truncated,
-            **data_sampler_args,
-        ).cuda()
-        ttrue_task = t_true_task_sampler(**task_sampler_args)
-        ttrue_ys = ttrue_task.evaluate(ttrue_xs).cuda()
-        ttrue_output = model(ttrue_xs, ttrue_ys)
-        ttrue_loss = loss_func(ttrue_output, ttrue_ys)
-        print(f"ttrue_loss: {ttrue_loss}")
+        ttrue_loss = None
+        with torch.no_grad():
+            print("Evaluating on ttrue")
+            #t_true_task_sampler = get_task_sampler(
+            #    args.training.task,
+            #    n_dims,
+            #    bsize,
+            #    **args.training.task_kwargs,
+            #)
+            ttrue_xs = data_sampler.sample_xs(
+                curriculum.n_points,
+                bsize,
+                curriculum.n_dims_truncated,
+                **data_sampler_args,
+            ).cuda()
+            ttrue_task = t_true_task_sampler(**task_sampler_args)
+            ttrue_ys = ttrue_task.evaluate(ttrue_xs).cuda()
+            ttrue_output = model(ttrue_xs, ttrue_ys)
+            ttrue_loss = loss_func(ttrue_output, ttrue_ys)
+            print(f"ttrue_loss: {ttrue_loss}")
 
         if i % args.wandb.log_every_steps == 0 and not args.test_run:
             wandb.log(
                 {
                     "overall_loss": loss,
-                    "excess_loss": loss / baseline_loss,
+                    #"excess_loss": loss / baseline_loss,
                     #"pointwise/loss": dict(
                     #    zip(point_wise_tags, point_wise_loss.cpu().numpy())
                     #),
@@ -238,10 +247,17 @@ def train(model, args, optimizer=None):
 
 
 def main(args):
+    # set the seed for reproducibility
+    seed = 42
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    #random.seed(seed)
     if args.test_run:
-        curriculum_args = args.training.curriculum
-        curriculum_args.points.start = curriculum_args.points.end
-        curriculum_args.dims.start = curriculum_args.dims.end
+        #curriculum_args = args.training.curriculum
+        #curriculum_args.points.start = curriculum_args.points.end
+        #curriculum_args.dims.start = curriculum_args.dims.end
         args.training.train_steps = 100
     else:
         wandb.init(
