@@ -4,7 +4,7 @@ inherit:
 model:
   n_dims: 8
   n_positions: 101
-test_run: false
+test_run: true
 training:
   batch_size: 256
   curriculum:
@@ -16,7 +16,14 @@ training:
   data: modular_arithmetic
   keep_every_steps: 100000
   learning_rate: 0.001
-  num_tasks: 256
+  num_tasks: 1
   save_every_steps: 250000
   task_kwargs: {}
   train_steps: 1000001
+optimizer:
+  name: NSM
+  base_optimizer: AdamW
+  lr: 0.0001
+  wd: 1
+  beta1: 0.9
+  beta2: 0.98
